@@ -50,6 +50,10 @@
       </div>
 
       <div id="editor-toolbar" hidden>
+        <div id="view-tabs" role="tablist">
+          <button id="btn-tab-edit" role="tab" aria-selected="true"  aria-controls="note-body">Edit</button>
+          <button id="btn-tab-preview" role="tab" aria-selected="false" aria-controls="note-preview" title="Preview (Ctrl+P)">Preview</button>
+        </div>
         <button id="btn-delete-note" title="Delete this note" disabled>&#128465; Delete</button>
       </div>
       <div id="title-wrapper" hidden>
@@ -69,6 +73,7 @@
         disabled
         hidden
       ></textarea>
+      <div id="note-preview" role="tabpanel" aria-labelledby="btn-tab-preview" hidden></div>
       <div id="status-bar" hidden>
         <span id="save-status"></span>
       </div>
@@ -95,6 +100,7 @@
   </div>
 
   <script src="storage.js"></script>
+  <script src="markdown.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
