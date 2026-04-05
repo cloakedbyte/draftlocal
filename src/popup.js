@@ -29,6 +29,9 @@ const errorMessage     = document.getElementById("error-message");
 const btnDismissErr    = document.getElementById("btn-dismiss-error");
 const searchInput      = document.getElementById("search");
 const titleWordCount   = document.getElementById("title-word-count");
+const btnExport        = document.getElementById("btn-export");
+const btnImport        = document.getElementById("btn-import");
+const importFileInput  = document.getElementById("import-file");
 
 const TITLE_WORD_LIMIT = 100;
 
@@ -266,6 +269,108 @@ function scheduleSave() {
   }, 500);
 }
 
+// ─── Import / Export ──────────────────────────────────────────────────────────
+
+/**
+ * Serialize all notes to a Markdown string.
+ * Format per note:
+ *   # Title\n\nBody\n\n---\n\n
+ * Notes with no title use "Untitled".
+ */
+function notesToMarkdown(notes) {
+  return notes
+    .map((n) => {
+      const title = (n.title.trim() || "Untitled").replace(/\n/g, " ");
+      return `# ${title}\n\n${n.body.trim()}`;
+    })
+    .join("\n\n---\n\n");
+}
+
+/**
+ * Parse a Markdown string back into a notes array.
+ * Splits on `---` (with surrounding blank lines), then reads the first `# heading`
+ * as the title and the rest as the body.
+ * Fresh ids + updatedAt are assigned (Markdown carries no metadata).
+ */
+function markdownToNotes(md) {
+  const blocks = md.split(/\n\s*---\s*\n/);
+  const notes = [];
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+
+    const lines = trimmed.split("\n");
+    let title = "";
+    let bodyStart = 0;
+
+    if (lines[0].startsWith("# ")) {
+      title = lines[0].slice(2).trim();
+      bodyStart = 1;
+      // skip blank line after heading
+      if (lines[1] !== undefined && lines[1].trim() === "") bodyStart = 2;
+    }
+
+    const body = lines.slice(bodyStart).join("\n").trim();
+    notes.push({ id: generateId(), title, body, updatedAt: Date.now() });
+  }
+
+  return notes;
+}
+
+/** Export all notes to a downloadable Markdown file. */
+function exportNotes() {
+  if (state.notes.length === 0) {
+    showError("No notes to export.");
+    return;
+  }
+  const sorted = [...state.notes].sort((a, b) => b.updatedAt - a.updatedAt);
+  const md   = notesToMarkdown(sorted);
+  const blob = new Blob([md], { type: "text/markdown; charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = "notes-export.md";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Import notes from a Markdown file chosen by the user. */
+function importNotes(file) {
+  const reader = new FileReader();
+
+  reader.onload = async (e) => {
+    const parsed = markdownToNotes(e.target.result);
+
+    if (parsed.length === 0) {
+      showError("Import failed: no notes found in the file.");
+      return;
+    }
+
+    // Ask: merge (keep existing + add new) or replace?
+    const doReplace = state.notes.length > 0
+      ? window.confirm(
+          `Replace all ${state.notes.length} existing note(s) with the ${parsed.length} imported note(s)?\n\nClick OK to replace, Cancel to merge (append).`
+        )
+      : true;
+
+    const merged = doReplace ? parsed : [...state.notes, ...parsed];
+
+    try {
+      await saveAllNotes(merged);
+      state.notes = merged;
+      state.activeId = null;
+      renderNoteList();
+      renderEditor();
+    } catch (err) {
+      showError("Import failed: could not save notes \u2014 " + err.message);
+    }
+  };
+
+  reader.onerror = () => showError("Import failed: could not read the file.");
+  reader.readAsText(file);
+}
+
 // ─── Event Listeners ──────────────────────────────────────────────────────────
 
 btnNewNote.addEventListener("click", createNote);
@@ -295,6 +400,18 @@ document.addEventListener("keydown", (e) => {
 });
 
 btnDismissErr.addEventListener("click", hideError);
+
+btnExport.addEventListener("click", exportNotes);
+
+btnImport.addEventListener("click", () => {
+  importFileInput.value = ""; // reset so same file can be re-imported
+  importFileInput.click();
+});
+
+importFileInput.addEventListener("change", () => {
+  const file = importFileInput.files[0];
+  if (file) importNotes(file);
+});
 
 searchInput.addEventListener("input", () => {
   state.searchQuery = searchInput.value.trim();
