@@ -4,9 +4,18 @@
  * Data shape:
  *   chrome.storage.local key: "notes"
  *   value: Array of { id: string, title: string, body: string, updatedAt: number }
+ *
+ *   chrome.storage.local key: "settings"
+ *   value: { theme: "auto"|"light"|"dark", sortOrder: "newest"|"oldest"|"title" }
  */
 
-const STORAGE_KEY = "notes";
+const STORAGE_KEY   = "notes";
+const SETTINGS_KEY  = "settings";
+
+const DEFAULT_SETTINGS = {
+  theme:     "auto",
+  sortOrder: "newest",
+};
 
 /**
  * Load all notes from local storage.
@@ -82,4 +91,45 @@ async function deleteNote(id) {
  */
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/**
+ * Load settings from local storage.
+ * @returns {Promise<{theme: string, sortOrder: string}>}
+ */
+function loadSettings() {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.storage.local.get(SETTINGS_KEY, (result) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        resolve(Object.assign({}, DEFAULT_SETTINGS, result[SETTINGS_KEY] || {}));
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+/**
+ * Save settings to local storage.
+ * @param {{ theme: string, sortOrder: string }} settings
+ * @returns {Promise<void>}
+ */
+function saveSettings(settings) {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.storage.local.set({ [SETTINGS_KEY]: settings }, () => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        resolve();
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
 }

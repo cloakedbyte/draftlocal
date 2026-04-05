@@ -14,6 +14,7 @@ const state = {
   activeId: null,     // id of the currently selected note, or null
   saveTimer: null,    // debounce handle for auto-save
   searchQuery: "",    // current search filter string
+  sortOrder: "newest", // "newest" | "oldest" | "title"
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ const titleWordCount   = document.getElementById("title-word-count");
 const btnExport        = document.getElementById("btn-export");
 const btnImport        = document.getElementById("btn-import");
 const importFileInput  = document.getElementById("import-file");
+const btnThemeToggle   = document.getElementById("btn-theme-toggle");
 
 const TITLE_WORD_LIMIT = 100;
 
@@ -62,8 +64,18 @@ function renderNoteList() {
       )
     : state.notes;
 
-  // Sort newest-updated first
-  const sorted = [...visible].sort((a, b) => b.updatedAt - a.updatedAt);
+  // Sort according to user preference
+  let sorted;
+  if (state.sortOrder === "oldest") {
+    sorted = [...visible].sort((a, b) => a.updatedAt - b.updatedAt);
+  } else if (state.sortOrder === "title") {
+    sorted = [...visible].sort((a, b) =>
+      (a.title || "").localeCompare(b.title || "")
+    );
+  } else {
+    // default: newest first
+    sorted = [...visible].sort((a, b) => b.updatedAt - a.updatedAt);
+  }
 
   if (sorted.length === 0 && q) {
     const empty = document.createElement("li");
@@ -157,9 +169,28 @@ function resizeTitleField() {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
+/** Return the effective current theme ("dark" or "light"), factoring in system pref. */
+function effectiveTheme() {
+  const t = document.documentElement.dataset.theme;
+  if (t === "dark") return "dark";
+  if (t === "light") return "light";
+  // auto — check system
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+/** Update the toggle button icon to reflect the current theme. */
+function updateThemeToggleIcon() {
+  btnThemeToggle.textContent = effectiveTheme() === "dark" ? "\u2600" : "\u263D";
+  btnThemeToggle.title = effectiveTheme() === "dark" ? "Switch to light mode" : "Switch to dark mode";
+}
+
 async function loadAll() {
   try {
-    state.notes = await loadNotes();
+    const [notes, settings] = await Promise.all([loadNotes(), loadSettings()]);
+    state.notes     = notes;
+    state.sortOrder = settings.sortOrder || "newest";
+    document.documentElement.dataset.theme = settings.theme || "auto";
+    updateThemeToggleIcon();
     renderNoteList();
     renderEditor();
   } catch (err) {
@@ -400,6 +431,18 @@ document.addEventListener("keydown", (e) => {
 });
 
 btnDismissErr.addEventListener("click", hideError);
+
+btnThemeToggle.addEventListener("click", async () => {
+  const next = effectiveTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  updateThemeToggleIcon();
+  try {
+    const settings = await loadSettings();
+    await saveSettings(Object.assign({}, settings, { theme: next }));
+  } catch (err) {
+    showError("Could not save theme: " + err.message);
+  }
+});
 
 btnExport.addEventListener("click", exportNotes);
 

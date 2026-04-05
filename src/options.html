@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline Notes — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div id="options-app">
+
+    <header id="options-header">
+      <h1>Settings</h1>
+    </header>
+
+    <main id="options-main">
+
+      <!-- Theme -->
+      <section class="setting-group" aria-labelledby="theme-label">
+        <h2 id="theme-label" class="setting-title">Theme</h2>
+        <div class="radio-group" role="radiogroup" aria-labelledby="theme-label">
+          <label class="radio-item">
+            <input type="radio" name="theme" value="auto" />
+            <span class="radio-label">Auto <span class="radio-hint">(follows system)</span></span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="theme" value="light" />
+            <span class="radio-label">Light</span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="theme" value="dark" />
+            <span class="radio-label">Dark</span>
+          </label>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- Sort order -->
+      <section class="setting-group" aria-labelledby="sort-label">
+        <h2 id="sort-label" class="setting-title">Note sort order</h2>
+        <div class="radio-group" role="radiogroup" aria-labelledby="sort-label">
+          <label class="radio-item">
+            <input type="radio" name="sortOrder" value="newest" />
+            <span class="radio-label">Newest first</span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="sortOrder" value="oldest" />
+            <span class="radio-label">Oldest first</span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="sortOrder" value="title" />
+            <span class="radio-label">Title A → Z</span>
+          </label>
+        </div>
+      </section>
+
+      <div id="save-indicator" aria-live="polite"></div>
+
+    </main>
+  </div>
+
+  <script src="storage.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
