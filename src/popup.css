@@ -275,6 +275,10 @@ html, body {
   padding: 10px 12px;
   width: 100%;
   outline: none;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
+  min-height: 42px;
   transition: border-color var(--transition);
 }
 

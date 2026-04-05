@@ -107,10 +107,17 @@ function renderEditor() {
   noteTitle.disabled = false;
   noteBody.disabled = false;
   btnDeleteNote.disabled = false;
+  resizeTitleField();
 }
 
 function setSaveStatus(text) {
   saveStatus.textContent = text;
+}
+
+/** Auto-grow the title textarea to fit its content with no scroll. */
+function resizeTitleField() {
+  noteTitle.style.height = "auto";
+  noteTitle.style.height = noteTitle.scrollHeight + "px";
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -239,7 +246,7 @@ btnDeleteNote.addEventListener("click", () => {
   }
 });
 
-noteTitle.addEventListener("input", scheduleSave);
+noteTitle.addEventListener("input", () => { resizeTitleField(); scheduleSave(); });
 noteBody.addEventListener("input", scheduleSave);
 
 // Keyboard shortcut: Ctrl+N / Cmd+N → new note
