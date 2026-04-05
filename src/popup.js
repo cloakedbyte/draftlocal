@@ -271,75 +271,90 @@ function scheduleSave() {
 
 // ─── Import / Export ──────────────────────────────────────────────────────────
 
-/** Validate that a parsed value looks like a notes array. */
-function isValidNotesArray(data) {
-  if (!Array.isArray(data)) return false;
-  return data.every(
-    (n) =>
-      n !== null &&
-      typeof n === "object" &&
-      typeof n.id === "string" &&
-      typeof n.title === "string" &&
-      typeof n.body === "string" &&
-      typeof n.updatedAt === "number"
-  );
+/**
+ * Serialize all notes to a Markdown string.
+ * Format per note:
+ *   # Title\n\nBody\n\n---\n\n
+ * Notes with no title use "Untitled".
+ */
+function notesToMarkdown(notes) {
+  return notes
+    .map((n) => {
+      const title = (n.title.trim() || "Untitled").replace(/\n/g, " ");
+      return `# ${title}\n\n${n.body.trim()}`;
+    })
+    .join("\n\n---\n\n");
 }
 
-/** Export all notes to a downloadable JSON file. */
+/**
+ * Parse a Markdown string back into a notes array.
+ * Splits on `---` (with surrounding blank lines), then reads the first `# heading`
+ * as the title and the rest as the body.
+ * Fresh ids + updatedAt are assigned (Markdown carries no metadata).
+ */
+function markdownToNotes(md) {
+  const blocks = md.split(/\n\s*---\s*\n/);
+  const notes = [];
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+
+    const lines = trimmed.split("\n");
+    let title = "";
+    let bodyStart = 0;
+
+    if (lines[0].startsWith("# ")) {
+      title = lines[0].slice(2).trim();
+      bodyStart = 1;
+      // skip blank line after heading
+      if (lines[1] !== undefined && lines[1].trim() === "") bodyStart = 2;
+    }
+
+    const body = lines.slice(bodyStart).join("\n").trim();
+    notes.push({ id: generateId(), title, body, updatedAt: Date.now() });
+  }
+
+  return notes;
+}
+
+/** Export all notes to a downloadable Markdown file. */
 function exportNotes() {
   if (state.notes.length === 0) {
     showError("No notes to export.");
     return;
   }
-  const json = JSON.stringify(state.notes, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
+  const sorted = [...state.notes].sort((a, b) => b.updatedAt - a.updatedAt);
+  const md   = notesToMarkdown(sorted);
+  const blob = new Blob([md], { type: "text/markdown; charset=utf-8" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = "notes-export.json";
+  a.download = "notes-export.md";
   a.click();
   URL.revokeObjectURL(url);
 }
 
-/** Import notes from a JSON file chosen by the user. */
+/** Import notes from a Markdown file chosen by the user. */
 function importNotes(file) {
   const reader = new FileReader();
 
   reader.onload = async (e) => {
-    let parsed;
-    try {
-      parsed = JSON.parse(e.target.result);
-    } catch {
-      showError("Import failed: file is not valid JSON.");
-      return;
-    }
-
-    if (!isValidNotesArray(parsed)) {
-      showError("Import failed: unrecognised format. Expected an array of notes.");
-      return;
-    }
+    const parsed = markdownToNotes(e.target.result);
 
     if (parsed.length === 0) {
-      showError("Import failed: the file contains no notes.");
+      showError("Import failed: no notes found in the file.");
       return;
     }
 
     // Ask: merge (keep existing + add new) or replace?
     const doReplace = state.notes.length > 0
       ? window.confirm(
-          `Replace all ${state.notes.length} existing note(s) with the ${parsed.length} imported note(s)?\n\nClick OK to replace, Cancel to merge.`
+          `Replace all ${state.notes.length} existing note(s) with the ${parsed.length} imported note(s)?\n\nClick OK to replace, Cancel to merge (append).`
         )
       : true;
 
-    let merged;
-    if (doReplace) {
-      merged = parsed;
-    } else {
-      // Merge: imported notes overwrite existing ones with same id
-      const map = new Map(state.notes.map((n) => [n.id, n]));
-      for (const n of parsed) map.set(n.id, n);
-      merged = Array.from(map.values());
-    }
+    const merged = doReplace ? parsed : [...state.notes, ...parsed];
 
     try {
       await saveAllNotes(merged);
@@ -348,7 +363,7 @@ function importNotes(file) {
       renderNoteList();
       renderEditor();
     } catch (err) {
-      showError("Import failed: could not save notes — " + err.message);
+      showError("Import failed: could not save notes \u2014 " + err.message);
     }
   };
 
