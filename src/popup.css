@@ -94,6 +94,38 @@ html, body {
   background: var(--bg-primary);
 }
 
+html.expanded,
+html.expanded body {
+  width: 760px;
+  height: 640px;
+}
+
+#btn-expand-toggle {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition), background var(--transition);
+}
+
+#btn-expand-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+#btn-expand-toggle:focus-visible {
+  outline: 2px solid var(--fg-accent);
+  outline-offset: 2px;
+}
+
 /* ─────────────────────────────────────────────
    App Layout — three-column grid (sidebar | handle | editor)
    ───────────────────────────────────────────── */
