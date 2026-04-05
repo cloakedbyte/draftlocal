@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline Notes</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Sidebar: note list -->
+    <aside id="sidebar">
+      <div id="sidebar-header">
+        <span id="app-title">Notes</span>
+        <button id="btn-new-note" title="New note (Ctrl+N)">&#43;</button>
+      </div>
+      <ul id="note-list" role="listbox" aria-label="Your notes"></ul>
+    </aside>
+
+    <!-- Main: editor -->
+    <main id="editor-panel">
+      <div id="editor-toolbar">
+        <button id="btn-delete-note" title="Delete this note" disabled>&#128465; Delete</button>
+      </div>
+      <input
+        id="note-title"
+        type="text"
+        placeholder="Note title…"
+        aria-label="Note title"
+        disabled
+      />
+      <textarea
+        id="note-body"
+        placeholder="Start typing…"
+        aria-label="Note body"
+        disabled
+      ></textarea>
+      <div id="status-bar">
+        <span id="save-status"></span>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Error banner (hidden by default) -->
+  <div id="error-banner" role="alert" aria-live="assertive" hidden>
+    <span id="error-message"></span>
+    <button id="btn-dismiss-error" aria-label="Dismiss error">&#10005;</button>
+  </div>
+
+  <script src="storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
