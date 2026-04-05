@@ -33,7 +33,7 @@ const titleWordCount   = document.getElementById("title-word-count");
 const btnExport        = document.getElementById("btn-export");
 const btnImport        = document.getElementById("btn-import");
 const importFileInput  = document.getElementById("import-file");
-const btnSettings      = document.getElementById("btn-settings");
+const btnThemeToggle   = document.getElementById("btn-theme-toggle");
 
 const TITLE_WORD_LIMIT = 100;
 
@@ -169,9 +169,19 @@ function resizeTitleField() {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-/** Apply a theme value to the document root. */
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme || "auto";
+/** Return the effective current theme ("dark" or "light"), factoring in system pref. */
+function effectiveTheme() {
+  const t = document.documentElement.dataset.theme;
+  if (t === "dark") return "dark";
+  if (t === "light") return "light";
+  // auto — check system
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+/** Update the toggle button icon to reflect the current theme. */
+function updateThemeToggleIcon() {
+  btnThemeToggle.textContent = effectiveTheme() === "dark" ? "\u2600" : "\u263D";
+  btnThemeToggle.title = effectiveTheme() === "dark" ? "Switch to light mode" : "Switch to dark mode";
 }
 
 async function loadAll() {
@@ -179,7 +189,8 @@ async function loadAll() {
     const [notes, settings] = await Promise.all([loadNotes(), loadSettings()]);
     state.notes     = notes;
     state.sortOrder = settings.sortOrder || "newest";
-    applyTheme(settings.theme);
+    document.documentElement.dataset.theme = settings.theme || "auto";
+    updateThemeToggleIcon();
     renderNoteList();
     renderEditor();
   } catch (err) {
@@ -421,8 +432,16 @@ document.addEventListener("keydown", (e) => {
 
 btnDismissErr.addEventListener("click", hideError);
 
-btnSettings.addEventListener("click", () => {
-  chrome.runtime.openOptionsPage();
+btnThemeToggle.addEventListener("click", async () => {
+  const next = effectiveTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  updateThemeToggleIcon();
+  try {
+    const settings = await loadSettings();
+    await saveSettings(Object.assign({}, settings, { theme: next }));
+  } catch (err) {
+    showError("Could not save theme: " + err.message);
+  }
 });
 
 btnExport.addEventListener("click", exportNotes);
