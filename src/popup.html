@@ -39,10 +39,16 @@
 
     <!-- Main: editor -->
     <main id="editor-panel">
-      <div id="editor-toolbar">
+      <!-- Empty state — shown when no note is selected and no notes exist -->
+      <div id="empty-state" hidden>
+        <div id="empty-state-icon">&#128221;</div>
+        <p id="empty-state-msg">Press <kbd>+</kbd> to create your first note</p>
+      </div>
+
+      <div id="editor-toolbar" hidden>
         <button id="btn-delete-note" title="Delete this note" disabled>&#128465; Delete</button>
       </div>
-      <div id="title-wrapper">
+      <div id="title-wrapper" hidden>
         <textarea
           id="note-title"
           rows="1"
@@ -57,8 +63,9 @@
         placeholder="Start typing…"
         aria-label="Note body"
         disabled
+        hidden
       ></textarea>
-      <div id="status-bar">
+      <div id="status-bar" hidden>
         <span id="save-status"></span>
       </div>
     </main>
@@ -69,6 +76,18 @@
   <div id="error-banner" role="alert" aria-live="assertive" hidden>
     <span id="error-message"></span>
     <button id="btn-dismiss-error" aria-label="Dismiss error">&#10005;</button>
+  </div>
+
+  <!-- Quota warning banner (hidden by default) -->
+  <div id="quota-banner" role="status" aria-live="polite" hidden>
+    <span id="quota-message">Storage almost full</span>
+    <button id="btn-dismiss-quota" aria-label="Dismiss warning">&#10005;</button>
+  </div>
+
+  <!-- Undo delete toast (hidden by default) -->
+  <div id="undo-toast" role="status" aria-live="polite" hidden>
+    <span id="undo-toast-msg">Note deleted</span>
+    <button id="btn-undo-delete">Undo</button>
   </div>
 
   <script src="storage.js"></script>
