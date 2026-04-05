@@ -1,6 +1,6 @@
 # DraftLocal
 
-**DraftLocal** is a minimal offline-only note-taking Chrome extension. No accounts, no sync, no network requests — your notes stay on your machine.
+**DraftLocal** is a minimal offline-only note-taking Chrome extension inspired by mozilla/notes or notes by firefox. No accounts, no sync, no network requests — your notes stay on your machine.
 
 > Version 0.0.1
 
