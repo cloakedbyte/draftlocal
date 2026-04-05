@@ -13,8 +13,9 @@ const STORAGE_KEY   = "notes";
 const SETTINGS_KEY  = "settings";
 
 const DEFAULT_SETTINGS = {
-  theme:     "auto",
-  sortOrder: "newest",
+  theme:        "auto",
+  sortOrder:    "newest",
+  sidebarWidth: 140,
 };
 
 /**

@@ -41,6 +41,7 @@ const quotaMessage     = document.getElementById("quota-message");
 const btnDismissQuota  = document.getElementById("btn-dismiss-quota");
 const undoToast        = document.getElementById("undo-toast");
 const btnUndoDelete    = document.getElementById("btn-undo-delete");
+const resizeHandle     = document.getElementById("resize-handle");
 
 const TITLE_WORD_LIMIT = 50;
 
@@ -208,6 +209,9 @@ async function loadAll() {
     state.notes     = notes;
     state.sortOrder = settings.sortOrder || "newest";
     document.documentElement.dataset.theme = settings.theme || "auto";
+    if (settings.sidebarWidth) {
+      document.documentElement.style.setProperty("--sidebar-width", settings.sidebarWidth + "px");
+    }
     updateThemeToggleIcon();
     renderNoteList();
     renderEditor();
@@ -586,6 +590,54 @@ searchInput.addEventListener("input", () => {
   state.searchQuery = searchInput.value.trim();
   renderNoteList();
 });
+
+// ─── Resize handle drag ───────────────────────────────────────────────────────
+
+(function initResize() {
+  const MIN_WIDTH = 80;
+  const MAX_WIDTH = 300;
+  let startX      = 0;
+  let startWidth  = 0;
+  let dragging    = false;
+
+  resizeHandle.addEventListener("pointerdown", (e) => {
+    dragging   = true;
+    startX     = e.clientX;
+    startWidth = parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue("--sidebar-width"),
+      10
+    ) || 140;
+    resizeHandle.setPointerCapture(e.pointerId);
+    resizeHandle.classList.add("dragging");
+    e.preventDefault();
+  });
+
+  resizeHandle.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const delta    = e.clientX - startX;
+    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta));
+    document.documentElement.style.setProperty("--sidebar-width", newWidth + "px");
+  });
+
+  async function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    resizeHandle.classList.remove("dragging");
+    const finalWidth = Math.min(
+      MAX_WIDTH,
+      Math.max(MIN_WIDTH, startWidth + (e.clientX - startX))
+    );
+    try {
+      const settings = await loadSettings();
+      await saveSettings(Object.assign({}, settings, { sidebarWidth: finalWidth }));
+    } catch (err) {
+      showError("Could not save sidebar width: " + err.message);
+    }
+  }
+
+  resizeHandle.addEventListener("pointerup",     endDrag);
+  resizeHandle.addEventListener("pointercancel", endDrag);
+})();
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
