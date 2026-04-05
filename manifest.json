@@ -12,6 +12,7 @@
       "128": "assets/icon128.png"
     }
   },
+  "options_page": "src/options.html",
   "icons": {
     "16": "assets/icon16.png",
     "48": "assets/icon48.png",

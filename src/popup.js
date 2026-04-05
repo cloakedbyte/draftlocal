@@ -14,6 +14,7 @@ const state = {
   activeId: null,     // id of the currently selected note, or null
   saveTimer: null,    // debounce handle for auto-save
   searchQuery: "",    // current search filter string
+  sortOrder: "newest", // "newest" | "oldest" | "title"
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ const titleWordCount   = document.getElementById("title-word-count");
 const btnExport        = document.getElementById("btn-export");
 const btnImport        = document.getElementById("btn-import");
 const importFileInput  = document.getElementById("import-file");
+const btnSettings      = document.getElementById("btn-settings");
 
 const TITLE_WORD_LIMIT = 100;
 
@@ -62,8 +64,18 @@ function renderNoteList() {
       )
     : state.notes;
 
-  // Sort newest-updated first
-  const sorted = [...visible].sort((a, b) => b.updatedAt - a.updatedAt);
+  // Sort according to user preference
+  let sorted;
+  if (state.sortOrder === "oldest") {
+    sorted = [...visible].sort((a, b) => a.updatedAt - b.updatedAt);
+  } else if (state.sortOrder === "title") {
+    sorted = [...visible].sort((a, b) =>
+      (a.title || "").localeCompare(b.title || "")
+    );
+  } else {
+    // default: newest first
+    sorted = [...visible].sort((a, b) => b.updatedAt - a.updatedAt);
+  }
 
   if (sorted.length === 0 && q) {
     const empty = document.createElement("li");
@@ -157,9 +169,17 @@ function resizeTitleField() {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
+/** Apply a theme value to the document root. */
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme || "auto";
+}
+
 async function loadAll() {
   try {
-    state.notes = await loadNotes();
+    const [notes, settings] = await Promise.all([loadNotes(), loadSettings()]);
+    state.notes     = notes;
+    state.sortOrder = settings.sortOrder || "newest";
+    applyTheme(settings.theme);
     renderNoteList();
     renderEditor();
   } catch (err) {
@@ -400,6 +420,10 @@ document.addEventListener("keydown", (e) => {
 });
 
 btnDismissErr.addEventListener("click", hideError);
+
+btnSettings.addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
+});
 
 btnExport.addEventListener("click", exportNotes);
 
