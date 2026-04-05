@@ -502,3 +502,125 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--fg-secondary);
 }
+
+/* ─────────────────────────────────────────────
+   Empty state
+   ───────────────────────────────────────────── */
+#empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: var(--fg-secondary);
+}
+
+#empty-state[hidden] { display: none; }
+
+#empty-state-icon {
+  font-size: 36px;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+#empty-state-msg {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#empty-state-msg kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font);
+  font-size: 12px;
+  background: var(--bg-secondary);
+  color: var(--fg-primary);
+}
+
+/* ─────────────────────────────────────────────
+   Quota warning banner
+   ───────────────────────────────────────────── */
+#quota-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fef9c3;
+  color: #713f12;
+  font-size: 12px;
+  padding: 7px 10px;
+  border-top: 1px solid #fbbf24;
+  z-index: 99;
+}
+
+#quota-banner[hidden] { display: none; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #quota-banner,
+  [data-theme="dark"] #quota-banner {
+    background: #422006;
+    color: #fde68a;
+    border-top-color: #92400e;
+  }
+}
+
+[data-theme="dark"] #quota-banner {
+  background: #422006;
+  color: #fde68a;
+  border-top-color: #92400e;
+}
+
+#btn-dismiss-quota {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+/* ─────────────────────────────────────────────
+   Undo delete toast
+   ───────────────────────────────────────────── */
+#undo-toast {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  color: var(--fg-primary);
+  font-size: 12px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--border);
+  z-index: 98;
+}
+
+#undo-toast[hidden] { display: none; }
+
+#btn-undo-delete {
+  border: 1px solid var(--fg-accent);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg-accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+#btn-undo-delete:hover {
+  background: var(--bg-active);
+}

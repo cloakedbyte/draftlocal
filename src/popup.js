@@ -10,11 +10,12 @@
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const state = {
-  notes: [],          // Array<{ id, title, body, updatedAt }>
-  activeId: null,     // id of the currently selected note, or null
-  saveTimer: null,    // debounce handle for auto-save
-  searchQuery: "",    // current search filter string
+  notes: [],           // Array<{ id, title, body, updatedAt }>
+  activeId: null,      // id of the currently selected note, or null
+  saveTimer: null,     // debounce handle for auto-save
+  searchQuery: "",     // current search filter string
   sortOrder: "newest", // "newest" | "oldest" | "title"
+  pendingDelete: null, // { note, timer } — undo delete slot
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -34,8 +35,14 @@ const btnExport        = document.getElementById("btn-export");
 const btnImport        = document.getElementById("btn-import");
 const importFileInput  = document.getElementById("import-file");
 const btnThemeToggle   = document.getElementById("btn-theme-toggle");
+const emptyState       = document.getElementById("empty-state");
+const quotaBanner      = document.getElementById("quota-banner");
+const quotaMessage     = document.getElementById("quota-message");
+const btnDismissQuota  = document.getElementById("btn-dismiss-quota");
+const undoToast        = document.getElementById("undo-toast");
+const btnUndoDelete    = document.getElementById("btn-undo-delete");
 
-const TITLE_WORD_LIMIT = 100;
+const TITLE_WORD_LIMIT = 50;
 
 // ─── Error display ────────────────────────────────────────────────────────────
 
@@ -119,8 +126,20 @@ function renderEditor() {
     saveStatus.textContent = "";
     titleWordCount.textContent = "0 / " + TITLE_WORD_LIMIT;
     titleWordCount.classList.remove("at-limit");
+    // Show empty state only when there are truly no notes at all
+    emptyState.hidden = state.notes.length > 0;
+    document.getElementById("editor-toolbar").hidden = state.notes.length === 0;
+    document.getElementById("title-wrapper").hidden  = state.notes.length === 0;
+    document.getElementById("note-body").hidden       = state.notes.length === 0;
+    document.getElementById("status-bar").hidden      = state.notes.length === 0;
     return;
   }
+
+  emptyState.hidden = true;
+  document.getElementById("editor-toolbar").hidden = false;
+  document.getElementById("title-wrapper").hidden  = false;
+  document.getElementById("note-body").hidden       = false;
+  document.getElementById("status-bar").hidden      = false;
 
   noteTitle.value = note.title;
   noteBody.value = note.body;
@@ -150,13 +169,12 @@ function updateTitleWordCount() {
 }
 
 /**
- * Enforce the 100-word limit on title input.
+ * Enforce the 50-word limit on title input.
  * If the new value would exceed the limit, truncate to the last valid word.
  */
 function enforceTitleWordLimit() {
   const words = noteTitle.value.trim().split(/\s+/).filter(Boolean);
   if (words.length > TITLE_WORD_LIMIT) {
-    // Preserve trailing space only if still within limit
     noteTitle.value = words.slice(0, TITLE_WORD_LIMIT).join(" ");
   }
 }
@@ -283,6 +301,7 @@ async function flushSave() {
     setTimeout(() => setSaveStatus(""), 1500);
     // Refresh sidebar snippet without losing cursor position
     renderNoteList();
+    checkStorageQuota();
   } catch (err) {
     showError("Auto-save failed: " + err.message);
     setSaveStatus("");
@@ -300,7 +319,94 @@ function scheduleSave() {
   }, 500);
 }
 
-// ─── Import / Export ──────────────────────────────────────────────────────────
+/** Check storage quota and show warning banner if >80% full. */
+function checkStorageQuota() {
+  if (!chrome.storage.local.getBytesInUse) return;
+  chrome.storage.local.getBytesInUse(null, (bytes) => {
+    if (chrome.runtime.lastError) return;
+    const quota = chrome.storage.local.QUOTA_BYTES || 10485760; // 10 MB default
+    const pct = bytes / quota;
+    if (pct > 0.8) {
+      const used = (bytes / 1024).toFixed(0);
+      const total = (quota / 1024).toFixed(0);
+      quotaMessage.textContent = `Storage ${Math.round(pct * 100)}% full (${used} KB / ${total} KB) — consider exporting old notes.`;
+      quotaBanner.hidden = false;
+    } else {
+      quotaBanner.hidden = true;
+    }
+  });
+}
+
+// ─── Undo Delete ──────────────────────────────────────────────────────────
+
+const UNDO_TIMEOUT_MS = 4000;
+
+/** Show the undo toast for a deleted note. */
+function showUndoToast(noteLabel) {
+  undoToast.querySelector("#undo-toast-msg").textContent =
+    `“${noteLabel || "Untitled"}” deleted`;
+  undoToast.hidden = false;
+}
+
+function hideUndoToast() {
+  undoToast.hidden = true;
+}
+
+/**
+ * Soft-delete: remove from state + UI immediately, hold in pendingDelete.
+ * After UNDO_TIMEOUT_MS, commit the delete to storage.
+ */
+function softDeleteNote(id) {
+  // Cancel any existing pending delete first (commit it immediately)
+  commitPendingDelete();
+
+  const note = state.notes.find((n) => n.id === id);
+  if (!note) return;
+
+  // Remove from state
+  state.notes = state.notes.filter((n) => n.id !== id);
+  if (state.activeId === id) {
+    state.activeId = state.notes.length > 0
+      ? [...state.notes].sort((a, b) => b.updatedAt - a.updatedAt)[0].id
+      : null;
+  }
+
+  renderNoteList();
+  renderEditor();
+
+  // Set up undo slot
+  const timer = setTimeout(commitPendingDelete, UNDO_TIMEOUT_MS);
+  state.pendingDelete = { note, timer };
+  showUndoToast(note.title);
+}
+
+/** Permanently delete the pending note from storage. */
+async function commitPendingDelete() {
+  if (!state.pendingDelete) return;
+  const { note, timer } = state.pendingDelete;
+  clearTimeout(timer);
+  state.pendingDelete = null;
+  hideUndoToast();
+  try {
+    await deleteNote(note.id);
+  } catch (err) {
+    showError("Could not delete note: " + err.message);
+  }
+}
+
+/** Restore a soft-deleted note. */
+function undoDelete() {
+  if (!state.pendingDelete) return;
+  const { note, timer } = state.pendingDelete;
+  clearTimeout(timer);
+  state.pendingDelete = null;
+  hideUndoToast();
+  // Put the note back
+  state.notes.push(note);
+  state.activeId = note.id;
+  renderNoteList();
+  renderEditor();
+}
 
 /**
  * Serialize all notes to a Markdown string.
@@ -407,10 +513,27 @@ function importNotes(file) {
 btnNewNote.addEventListener("click", createNote);
 
 btnDeleteNote.addEventListener("click", () => {
-  const note = getActiveNote();
-  const name = note && note.title ? `"${note.title}"` : "this note";
-  if (window.confirm(`Delete ${name}?`)) {
-    removeActiveNote();
+  if (!state.activeId) return;
+  softDeleteNote(state.activeId);
+});
+
+/**
+ * Block further typing in the title once the word limit is reached.
+ * Allows: Backspace, Delete, Arrow keys, Home, End, Tab, Ctrl/Cmd combos (cut, undo, etc.).
+ */
+noteTitle.addEventListener("keydown", (e) => {
+  const allowedKeys = [
+    "Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+    "Home", "End", "Tab", "Escape", "Enter",
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) return;
+
+  // Only block when already AT the limit and the next char would add a word.
+  // A word is added when typing a non-space after a space (or at end of last word
+  // and the current count == limit). Simplest safe approach: block any printable
+  // character keystroke when count has reached the limit.
+  if (countWords(noteTitle.value) >= TITLE_WORD_LIMIT) {
+    e.preventDefault();
   }
 });
 
@@ -432,6 +555,9 @@ document.addEventListener("keydown", (e) => {
 
 btnDismissErr.addEventListener("click", hideError);
 
+btnDismissQuota.addEventListener("click", () => { quotaBanner.hidden = true; });
+
+btnUndoDelete.addEventListener("click", undoDelete);
 btnThemeToggle.addEventListener("click", async () => {
   const next = effectiveTheme() === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = next;
