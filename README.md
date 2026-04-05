@@ -20,6 +20,9 @@
 | Edit note | Click a note in the list, type in the editor |
 | Delete note | Click **🗑 Delete** in the toolbar, confirm prompt |
 | Auto-save | Happens automatically 500 ms after you stop typing |
+| Search notes | Type in the **Search…** box at the top of the sidebar |
+| Export notes | Click **↑ Export** in the sidebar footer (saves as Markdown) |
+| Import notes | Click **↓ Import** in the sidebar footer |
 
 ## Offline testing checklist
 
@@ -48,6 +51,4 @@ README.md            This file
 
 ## Known limitations
 
-- No search / filtering yet.
-- No import / export.
-- No keyboard shortcut to open the popup from outside (browser limitation without additional permissions).
+- No keyboard shortcut to open the popup from outside the browser (browser limitation without additional permissions).
