@@ -16,6 +16,7 @@ const state = {
   searchQuery: "",     // current search filter string
   sortOrder: "newest", // "newest" | "oldest" | "title"
   pendingDelete: null, // { note, timer } — undo delete slot
+  viewMode: "edit",   // "edit" | "preview"
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -43,6 +44,9 @@ const undoToast        = document.getElementById("undo-toast");
 const btnUndoDelete    = document.getElementById("btn-undo-delete");
 const resizeHandle     = document.getElementById("resize-handle");
 const btnExpandToggle  = document.getElementById("btn-expand-toggle");
+const btnTabEdit       = document.getElementById("btn-tab-edit");
+const btnTabPreview    = document.getElementById("btn-tab-preview");
+const notePreview      = document.getElementById("note-preview");
 
 const TITLE_WORD_LIMIT = 50;
 
@@ -133,6 +137,7 @@ function renderEditor() {
     document.getElementById("editor-toolbar").hidden = state.notes.length === 0;
     document.getElementById("title-wrapper").hidden  = state.notes.length === 0;
     document.getElementById("note-body").hidden       = state.notes.length === 0;
+    document.getElementById("note-preview").hidden    = true;
     document.getElementById("status-bar").hidden      = state.notes.length === 0;
     return;
   }
@@ -140,7 +145,6 @@ function renderEditor() {
   emptyState.hidden = true;
   document.getElementById("editor-toolbar").hidden = false;
   document.getElementById("title-wrapper").hidden  = false;
-  document.getElementById("note-body").hidden       = false;
   document.getElementById("status-bar").hidden      = false;
 
   noteTitle.value = note.title;
@@ -150,6 +154,29 @@ function renderEditor() {
   btnDeleteNote.disabled = false;
   resizeTitleField();
   updateTitleWordCount();
+
+  if (state.viewMode === "preview") {
+    showPreviewMode();
+  } else {
+    showEditMode();
+  }
+}
+
+function showEditMode() {
+  state.viewMode = "edit";
+  noteBody.hidden    = false;
+  notePreview.hidden = true;
+  btnTabEdit.setAttribute("aria-selected", "true");
+  btnTabPreview.setAttribute("aria-selected", "false");
+}
+
+function showPreviewMode() {
+  state.viewMode = "preview";
+  notePreview.innerHTML = renderMarkdown(noteBody.value);
+  noteBody.hidden    = true;
+  notePreview.hidden = false;
+  btnTabEdit.setAttribute("aria-selected", "false");
+  btnTabPreview.setAttribute("aria-selected", "true");
 }
 
 function setSaveStatus(text) {
@@ -234,6 +261,7 @@ function selectNote(id) {
     flushSave();
   }
   state.activeId = id;
+  state.viewMode = "edit"; // always land in edit mode when switching notes
   renderNoteList();
   renderEditor();
   noteTitle.focus();
@@ -555,7 +583,7 @@ noteTitle.addEventListener("input", () => {
 });
 noteBody.addEventListener("input", scheduleSave);
 
-// Keyboard shortcut: Ctrl+N / Cmd+N → new note; Ctrl+E / Cmd+E → expand/collapse
+// Keyboard shortcut: Ctrl+N / Cmd+N → new note; Ctrl+E → expand/collapse; Ctrl+P → toggle preview
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "n") {
     e.preventDefault();
@@ -564,6 +592,12 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "e") {
     e.preventDefault();
     toggleExpand();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === "p") {
+    e.preventDefault();
+    if (state.activeId) {
+      state.viewMode === "preview" ? showEditMode() : showPreviewMode();
+    }
   }
 });
 
@@ -586,6 +620,14 @@ async function toggleExpand() {
 }
 
 btnExpandToggle.addEventListener("click", toggleExpand);
+
+btnTabEdit.addEventListener("click", () => {
+  if (state.activeId) showEditMode();
+});
+
+btnTabPreview.addEventListener("click", () => {
+  if (state.activeId) showPreviewMode();
+});
 
 btnThemeToggle.addEventListener("click", async () => {
   const next = effectiveTheme() === "dark" ? "light" : "dark";
