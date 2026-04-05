@@ -13,6 +13,7 @@ const state = {
   notes: [],          // Array<{ id, title, body, updatedAt }>
   activeId: null,     // id of the currently selected note, or null
   saveTimer: null,    // debounce handle for auto-save
+  searchQuery: "",    // current search filter string
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ const saveStatus     = document.getElementById("save-status");
 const errorBanner    = document.getElementById("error-banner");
 const errorMessage   = document.getElementById("error-message");
 const btnDismissErr  = document.getElementById("btn-dismiss-error");
+const searchInput    = document.getElementById("search");
 
 // ─── Error display ────────────────────────────────────────────────────────────
 
@@ -43,8 +45,27 @@ function hideError() {
 
 function renderNoteList() {
   noteList.innerHTML = "";
+
+  // Filter by search query (case-insensitive match on title or body)
+  const q = state.searchQuery.toLowerCase();
+  const visible = q
+    ? state.notes.filter(
+        (n) =>
+          n.title.toLowerCase().includes(q) ||
+          n.body.toLowerCase().includes(q)
+      )
+    : state.notes;
+
   // Sort newest-updated first
-  const sorted = [...state.notes].sort((a, b) => b.updatedAt - a.updatedAt);
+  const sorted = [...visible].sort((a, b) => b.updatedAt - a.updatedAt);
+
+  if (sorted.length === 0 && q) {
+    const empty = document.createElement("li");
+    empty.className = "note-list-empty";
+    empty.textContent = "No results";
+    noteList.appendChild(empty);
+    return;
+  }
 
   for (const note of sorted) {
     const li = document.createElement("li");
@@ -118,6 +139,10 @@ function selectNote(id) {
 }
 
 async function createNote() {
+  // Clear search so the new note is always visible in the list
+  state.searchQuery = "";
+  searchInput.value = "";
+
   const note = {
     id: generateId(),
     title: "",
@@ -226,6 +251,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 btnDismissErr.addEventListener("click", hideError);
+
+searchInput.addEventListener("input", () => {
+  state.searchQuery = searchInput.value.trim();
+  renderNoteList();
+});
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
