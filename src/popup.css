@@ -219,6 +219,46 @@ html, body {
 }
 
 /* ─────────────────────────────────────────────
+   Sidebar Footer — Import / Export
+   ───────────────────────────────────────────── */
+#sidebar-footer {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+#sidebar-footer button {
+  flex: 1;
+  padding: 4px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg-secondary);
+  font-family: var(--font);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+
+#sidebar-footer button:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+#sidebar-footer button:focus-visible {
+  outline: 2px solid var(--fg-accent);
+  outline-offset: 2px;
+}
+
+/* hide the real file input — triggered programmatically */
+#import-file {
+  display: none;
+}
+
+/* ─────────────────────────────────────────────
    Editor Panel
    ───────────────────────────────────────────── */
 #editor-panel {

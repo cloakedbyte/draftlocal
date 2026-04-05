@@ -29,6 +29,9 @@ const errorMessage     = document.getElementById("error-message");
 const btnDismissErr    = document.getElementById("btn-dismiss-error");
 const searchInput      = document.getElementById("search");
 const titleWordCount   = document.getElementById("title-word-count");
+const btnExport        = document.getElementById("btn-export");
+const btnImport        = document.getElementById("btn-import");
+const importFileInput  = document.getElementById("import-file");
 
 const TITLE_WORD_LIMIT = 100;
 
@@ -266,6 +269,93 @@ function scheduleSave() {
   }, 500);
 }
 
+// ─── Import / Export ──────────────────────────────────────────────────────────
+
+/** Validate that a parsed value looks like a notes array. */
+function isValidNotesArray(data) {
+  if (!Array.isArray(data)) return false;
+  return data.every(
+    (n) =>
+      n !== null &&
+      typeof n === "object" &&
+      typeof n.id === "string" &&
+      typeof n.title === "string" &&
+      typeof n.body === "string" &&
+      typeof n.updatedAt === "number"
+  );
+}
+
+/** Export all notes to a downloadable JSON file. */
+function exportNotes() {
+  if (state.notes.length === 0) {
+    showError("No notes to export.");
+    return;
+  }
+  const json = JSON.stringify(state.notes, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = "notes-export.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Import notes from a JSON file chosen by the user. */
+function importNotes(file) {
+  const reader = new FileReader();
+
+  reader.onload = async (e) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(e.target.result);
+    } catch {
+      showError("Import failed: file is not valid JSON.");
+      return;
+    }
+
+    if (!isValidNotesArray(parsed)) {
+      showError("Import failed: unrecognised format. Expected an array of notes.");
+      return;
+    }
+
+    if (parsed.length === 0) {
+      showError("Import failed: the file contains no notes.");
+      return;
+    }
+
+    // Ask: merge (keep existing + add new) or replace?
+    const doReplace = state.notes.length > 0
+      ? window.confirm(
+          `Replace all ${state.notes.length} existing note(s) with the ${parsed.length} imported note(s)?\n\nClick OK to replace, Cancel to merge.`
+        )
+      : true;
+
+    let merged;
+    if (doReplace) {
+      merged = parsed;
+    } else {
+      // Merge: imported notes overwrite existing ones with same id
+      const map = new Map(state.notes.map((n) => [n.id, n]));
+      for (const n of parsed) map.set(n.id, n);
+      merged = Array.from(map.values());
+    }
+
+    try {
+      await saveAllNotes(merged);
+      state.notes = merged;
+      state.activeId = null;
+      renderNoteList();
+      renderEditor();
+    } catch (err) {
+      showError("Import failed: could not save notes — " + err.message);
+    }
+  };
+
+  reader.onerror = () => showError("Import failed: could not read the file.");
+  reader.readAsText(file);
+}
+
 // ─── Event Listeners ──────────────────────────────────────────────────────────
 
 btnNewNote.addEventListener("click", createNote);
@@ -295,6 +385,18 @@ document.addEventListener("keydown", (e) => {
 });
 
 btnDismissErr.addEventListener("click", hideError);
+
+btnExport.addEventListener("click", exportNotes);
+
+btnImport.addEventListener("click", () => {
+  importFileInput.value = ""; // reset so same file can be re-imported
+  importFileInput.click();
+});
+
+importFileInput.addEventListener("change", () => {
+  const file = importFileInput.files[0];
+  if (file) importNotes(file);
+});
 
 searchInput.addEventListener("input", () => {
   state.searchQuery = searchInput.value.trim();
