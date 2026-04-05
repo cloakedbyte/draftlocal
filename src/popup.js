@@ -42,7 +42,7 @@ const btnDismissQuota  = document.getElementById("btn-dismiss-quota");
 const undoToast        = document.getElementById("undo-toast");
 const btnUndoDelete    = document.getElementById("btn-undo-delete");
 
-const TITLE_WORD_LIMIT = 100;
+const TITLE_WORD_LIMIT = 50;
 
 // ─── Error display ────────────────────────────────────────────────────────────
 
@@ -169,13 +169,12 @@ function updateTitleWordCount() {
 }
 
 /**
- * Enforce the 100-word limit on title input.
+ * Enforce the 50-word limit on title input.
  * If the new value would exceed the limit, truncate to the last valid word.
  */
 function enforceTitleWordLimit() {
   const words = noteTitle.value.trim().split(/\s+/).filter(Boolean);
   if (words.length > TITLE_WORD_LIMIT) {
-    // Preserve trailing space only if still within limit
     noteTitle.value = words.slice(0, TITLE_WORD_LIMIT).join(" ");
   }
 }
@@ -516,6 +515,26 @@ btnNewNote.addEventListener("click", createNote);
 btnDeleteNote.addEventListener("click", () => {
   if (!state.activeId) return;
   softDeleteNote(state.activeId);
+});
+
+/**
+ * Block further typing in the title once the word limit is reached.
+ * Allows: Backspace, Delete, Arrow keys, Home, End, Tab, Ctrl/Cmd combos (cut, undo, etc.).
+ */
+noteTitle.addEventListener("keydown", (e) => {
+  const allowedKeys = [
+    "Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+    "Home", "End", "Tab", "Escape", "Enter",
+  ];
+  if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) return;
+
+  // Only block when already AT the limit and the next char would add a word.
+  // A word is added when typing a non-space after a space (or at end of last word
+  // and the current count == limit). Simplest safe approach: block any printable
+  // character keystroke when count has reached the limit.
+  if (countWords(noteTitle.value) >= TITLE_WORD_LIMIT) {
+    e.preventDefault();
+  }
 });
 
 noteTitle.addEventListener("input", () => {
