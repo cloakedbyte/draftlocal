@@ -127,6 +127,38 @@ html, body {
 }
 
 /* ─── Note list ─── */
+/* ─── Search ─── */
+#search-wrapper {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+#search {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-family: var(--font);
+  font-size: 12px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+#search::placeholder {
+  color: var(--fg-secondary);
+}
+
+#search:focus {
+  border-color: var(--fg-accent);
+}
+
+/* hide the browser's native clear (×) button — we clear on new note */
+#search::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
 #note-list {
   flex: 1;
   overflow-y: auto;
@@ -177,6 +209,15 @@ html, body {
   text-align: center;
 }
 
+#note-list .note-list-empty {
+  padding: 16px 10px;
+  color: var(--fg-secondary);
+  font-size: 12px;
+  text-align: center;
+  pointer-events: none;
+  list-style: none;
+}
+
 /* ─────────────────────────────────────────────
    Editor Panel
    ───────────────────────────────────────────── */
@@ -223,27 +264,50 @@ html, body {
   outline-offset: 2px;
 }
 
+#title-wrapper {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+
 #note-title {
   border: none;
-  border-bottom: 1px solid var(--border);
   background: var(--bg-primary);
   color: var(--fg-primary);
   font-family: var(--font);
   font-size: 15px;
   font-weight: 600;
-  padding: 10px 12px;
+  padding: 10px 12px 18px;
   width: 100%;
   outline: none;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
+  min-height: 42px;
   transition: border-color var(--transition);
+}
+
+#note-title:focus {
+  border-bottom-color: var(--fg-accent);
+}
+
+#title-word-count {
+  position: absolute;
+  bottom: 3px;
+  right: 10px;
+  font-size: 10px;
+  color: var(--fg-secondary);
+  pointer-events: none;
+  user-select: none;
+}
+
+#title-word-count.at-limit {
+  color: var(--fg-danger);
+  font-weight: 600;
 }
 
 #note-title::placeholder {
   color: var(--fg-secondary);
   font-weight: 400;
-}
-
-#note-title:focus {
-  border-bottom-color: var(--fg-accent);
 }
 
 #note-title:disabled {

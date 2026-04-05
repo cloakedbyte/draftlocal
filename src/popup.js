@@ -13,19 +13,24 @@ const state = {
   notes: [],          // Array<{ id, title, body, updatedAt }>
   activeId: null,     // id of the currently selected note, or null
   saveTimer: null,    // debounce handle for auto-save
+  searchQuery: "",    // current search filter string
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 
-const noteList       = document.getElementById("note-list");
-const noteTitle      = document.getElementById("note-title");
-const noteBody       = document.getElementById("note-body");
-const btnNewNote     = document.getElementById("btn-new-note");
-const btnDeleteNote  = document.getElementById("btn-delete-note");
-const saveStatus     = document.getElementById("save-status");
-const errorBanner    = document.getElementById("error-banner");
-const errorMessage   = document.getElementById("error-message");
-const btnDismissErr  = document.getElementById("btn-dismiss-error");
+const noteList         = document.getElementById("note-list");
+const noteTitle        = document.getElementById("note-title");
+const noteBody         = document.getElementById("note-body");
+const btnNewNote       = document.getElementById("btn-new-note");
+const btnDeleteNote    = document.getElementById("btn-delete-note");
+const saveStatus       = document.getElementById("save-status");
+const errorBanner      = document.getElementById("error-banner");
+const errorMessage     = document.getElementById("error-message");
+const btnDismissErr    = document.getElementById("btn-dismiss-error");
+const searchInput      = document.getElementById("search");
+const titleWordCount   = document.getElementById("title-word-count");
+
+const TITLE_WORD_LIMIT = 100;
 
 // ─── Error display ────────────────────────────────────────────────────────────
 
@@ -43,8 +48,27 @@ function hideError() {
 
 function renderNoteList() {
   noteList.innerHTML = "";
+
+  // Filter by search query (case-insensitive match on title or body)
+  const q = state.searchQuery.toLowerCase();
+  const visible = q
+    ? state.notes.filter(
+        (n) =>
+          n.title.toLowerCase().includes(q) ||
+          n.body.toLowerCase().includes(q)
+      )
+    : state.notes;
+
   // Sort newest-updated first
-  const sorted = [...state.notes].sort((a, b) => b.updatedAt - a.updatedAt);
+  const sorted = [...visible].sort((a, b) => b.updatedAt - a.updatedAt);
+
+  if (sorted.length === 0 && q) {
+    const empty = document.createElement("li");
+    empty.className = "note-list-empty";
+    empty.textContent = "No results";
+    noteList.appendChild(empty);
+    return;
+  }
 
   for (const note of sorted) {
     const li = document.createElement("li");
@@ -78,6 +102,8 @@ function renderEditor() {
     noteBody.disabled = true;
     btnDeleteNote.disabled = true;
     saveStatus.textContent = "";
+    titleWordCount.textContent = "0 / " + TITLE_WORD_LIMIT;
+    titleWordCount.classList.remove("at-limit");
     return;
   }
 
@@ -86,10 +112,44 @@ function renderEditor() {
   noteTitle.disabled = false;
   noteBody.disabled = false;
   btnDeleteNote.disabled = false;
+  resizeTitleField();
+  updateTitleWordCount();
 }
 
 function setSaveStatus(text) {
   saveStatus.textContent = text;
+}
+
+/** Count words in a string (split on whitespace, ignore empty tokens). */
+function countWords(str) {
+  return str.trim() === "" ? 0 : str.trim().split(/\s+/).length;
+}
+
+/** Update the word counter badge; return true if within limit. */
+function updateTitleWordCount() {
+  const count = countWords(noteTitle.value);
+  titleWordCount.textContent = count + " / " + TITLE_WORD_LIMIT;
+  const atLimit = count >= TITLE_WORD_LIMIT;
+  titleWordCount.classList.toggle("at-limit", atLimit);
+  return !atLimit;
+}
+
+/**
+ * Enforce the 100-word limit on title input.
+ * If the new value would exceed the limit, truncate to the last valid word.
+ */
+function enforceTitleWordLimit() {
+  const words = noteTitle.value.trim().split(/\s+/).filter(Boolean);
+  if (words.length > TITLE_WORD_LIMIT) {
+    // Preserve trailing space only if still within limit
+    noteTitle.value = words.slice(0, TITLE_WORD_LIMIT).join(" ");
+  }
+}
+
+/** Auto-grow the title textarea to fit its content with no scroll. */
+function resizeTitleField() {
+  noteTitle.style.height = "auto";
+  noteTitle.style.height = noteTitle.scrollHeight + "px";
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -118,6 +178,10 @@ function selectNote(id) {
 }
 
 async function createNote() {
+  // Clear search so the new note is always visible in the list
+  state.searchQuery = "";
+  searchInput.value = "";
+
   const note = {
     id: generateId(),
     title: "",
@@ -214,7 +278,12 @@ btnDeleteNote.addEventListener("click", () => {
   }
 });
 
-noteTitle.addEventListener("input", scheduleSave);
+noteTitle.addEventListener("input", () => {
+  enforceTitleWordLimit();
+  resizeTitleField();
+  updateTitleWordCount();
+  scheduleSave();
+});
 noteBody.addEventListener("input", scheduleSave);
 
 // Keyboard shortcut: Ctrl+N / Cmd+N → new note
@@ -226,6 +295,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 btnDismissErr.addEventListener("click", hideError);
+
+searchInput.addEventListener("input", () => {
+  state.searchQuery = searchInput.value.trim();
+  renderNoteList();
+});
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 

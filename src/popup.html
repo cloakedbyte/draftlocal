@@ -15,6 +15,15 @@
         <span id="app-title">Notes</span>
         <button id="btn-new-note" title="New note (Ctrl+N)">&#43;</button>
       </div>
+      <div id="search-wrapper">
+        <input
+          id="search"
+          type="search"
+          placeholder="Search…"
+          aria-label="Search notes"
+          autocomplete="off"
+        />
+      </div>
       <ul id="note-list" role="listbox" aria-label="Your notes"></ul>
     </aside>
 
@@ -23,13 +32,16 @@
       <div id="editor-toolbar">
         <button id="btn-delete-note" title="Delete this note" disabled>&#128465; Delete</button>
       </div>
-      <input
-        id="note-title"
-        type="text"
-        placeholder="Note title…"
-        aria-label="Note title"
-        disabled
-      />
+      <div id="title-wrapper">
+        <textarea
+          id="note-title"
+          rows="1"
+          placeholder="Note title…"
+          aria-label="Note title"
+          disabled
+        ></textarea>
+        <span id="title-word-count" aria-live="polite">0 / 100</span>
+      </div>
       <textarea
         id="note-body"
         placeholder="Start typing…"
