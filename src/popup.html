@@ -32,13 +32,16 @@
       <div id="editor-toolbar">
         <button id="btn-delete-note" title="Delete this note" disabled>&#128465; Delete</button>
       </div>
-      <textarea
-        id="note-title"
-        rows="1"
-        placeholder="Note title…"
-        aria-label="Note title"
-        disabled
-      ></textarea>
+      <div id="title-wrapper">
+        <textarea
+          id="note-title"
+          rows="1"
+          placeholder="Note title…"
+          aria-label="Note title"
+          disabled
+        ></textarea>
+        <span id="title-word-count" aria-live="polite">0 / 100</span>
+      </div>
       <textarea
         id="note-body"
         placeholder="Start typing…"

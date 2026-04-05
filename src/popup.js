@@ -18,16 +18,19 @@ const state = {
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 
-const noteList       = document.getElementById("note-list");
-const noteTitle      = document.getElementById("note-title");
-const noteBody       = document.getElementById("note-body");
-const btnNewNote     = document.getElementById("btn-new-note");
-const btnDeleteNote  = document.getElementById("btn-delete-note");
-const saveStatus     = document.getElementById("save-status");
-const errorBanner    = document.getElementById("error-banner");
-const errorMessage   = document.getElementById("error-message");
-const btnDismissErr  = document.getElementById("btn-dismiss-error");
-const searchInput    = document.getElementById("search");
+const noteList         = document.getElementById("note-list");
+const noteTitle        = document.getElementById("note-title");
+const noteBody         = document.getElementById("note-body");
+const btnNewNote       = document.getElementById("btn-new-note");
+const btnDeleteNote    = document.getElementById("btn-delete-note");
+const saveStatus       = document.getElementById("save-status");
+const errorBanner      = document.getElementById("error-banner");
+const errorMessage     = document.getElementById("error-message");
+const btnDismissErr    = document.getElementById("btn-dismiss-error");
+const searchInput      = document.getElementById("search");
+const titleWordCount   = document.getElementById("title-word-count");
+
+const TITLE_WORD_LIMIT = 100;
 
 // ─── Error display ────────────────────────────────────────────────────────────
 
@@ -99,6 +102,8 @@ function renderEditor() {
     noteBody.disabled = true;
     btnDeleteNote.disabled = true;
     saveStatus.textContent = "";
+    titleWordCount.textContent = "0 / " + TITLE_WORD_LIMIT;
+    titleWordCount.classList.remove("at-limit");
     return;
   }
 
@@ -108,10 +113,37 @@ function renderEditor() {
   noteBody.disabled = false;
   btnDeleteNote.disabled = false;
   resizeTitleField();
+  updateTitleWordCount();
 }
 
 function setSaveStatus(text) {
   saveStatus.textContent = text;
+}
+
+/** Count words in a string (split on whitespace, ignore empty tokens). */
+function countWords(str) {
+  return str.trim() === "" ? 0 : str.trim().split(/\s+/).length;
+}
+
+/** Update the word counter badge; return true if within limit. */
+function updateTitleWordCount() {
+  const count = countWords(noteTitle.value);
+  titleWordCount.textContent = count + " / " + TITLE_WORD_LIMIT;
+  const atLimit = count >= TITLE_WORD_LIMIT;
+  titleWordCount.classList.toggle("at-limit", atLimit);
+  return !atLimit;
+}
+
+/**
+ * Enforce the 100-word limit on title input.
+ * If the new value would exceed the limit, truncate to the last valid word.
+ */
+function enforceTitleWordLimit() {
+  const words = noteTitle.value.trim().split(/\s+/).filter(Boolean);
+  if (words.length > TITLE_WORD_LIMIT) {
+    // Preserve trailing space only if still within limit
+    noteTitle.value = words.slice(0, TITLE_WORD_LIMIT).join(" ");
+  }
 }
 
 /** Auto-grow the title textarea to fit its content with no scroll. */
@@ -246,7 +278,12 @@ btnDeleteNote.addEventListener("click", () => {
   }
 });
 
-noteTitle.addEventListener("input", () => { resizeTitleField(); scheduleSave(); });
+noteTitle.addEventListener("input", () => {
+  enforceTitleWordLimit();
+  resizeTitleField();
+  updateTitleWordCount();
+  scheduleSave();
+});
 noteBody.addEventListener("input", scheduleSave);
 
 // Keyboard shortcut: Ctrl+N / Cmd+N → new note

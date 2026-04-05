@@ -264,15 +264,19 @@ html, body {
   outline-offset: 2px;
 }
 
+#title-wrapper {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+
 #note-title {
   border: none;
-  border-bottom: 1px solid var(--border);
   background: var(--bg-primary);
   color: var(--fg-primary);
   font-family: var(--font);
   font-size: 15px;
   font-weight: 600;
-  padding: 10px 12px;
+  padding: 10px 12px 18px;
   width: 100%;
   outline: none;
   resize: none;
@@ -282,13 +286,28 @@ html, body {
   transition: border-color var(--transition);
 }
 
+#note-title:focus {
+  border-bottom-color: var(--fg-accent);
+}
+
+#title-word-count {
+  position: absolute;
+  bottom: 3px;
+  right: 10px;
+  font-size: 10px;
+  color: var(--fg-secondary);
+  pointer-events: none;
+  user-select: none;
+}
+
+#title-word-count.at-limit {
+  color: var(--fg-danger);
+  font-weight: 600;
+}
+
 #note-title::placeholder {
   color: var(--fg-secondary);
   font-weight: 400;
-}
-
-#note-title:focus {
-  border-bottom-color: var(--fg-accent);
 }
 
 #note-title:disabled {
