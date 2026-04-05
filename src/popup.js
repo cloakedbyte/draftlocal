@@ -42,6 +42,7 @@ const btnDismissQuota  = document.getElementById("btn-dismiss-quota");
 const undoToast        = document.getElementById("undo-toast");
 const btnUndoDelete    = document.getElementById("btn-undo-delete");
 const resizeHandle     = document.getElementById("resize-handle");
+const btnExpandToggle  = document.getElementById("btn-expand-toggle");
 
 const TITLE_WORD_LIMIT = 50;
 
@@ -211,6 +212,11 @@ async function loadAll() {
     document.documentElement.dataset.theme = settings.theme || "auto";
     if (settings.sidebarWidth) {
       document.documentElement.style.setProperty("--sidebar-width", settings.sidebarWidth + "px");
+    }
+    if (settings.expanded) {
+      document.documentElement.classList.add("expanded");
+      btnExpandToggle.textContent = "\u229F"; // ⊟ collapse icon
+      btnExpandToggle.title = "Collapse popup (Ctrl+E)";
     }
     updateThemeToggleIcon();
     renderNoteList();
@@ -549,11 +555,15 @@ noteTitle.addEventListener("input", () => {
 });
 noteBody.addEventListener("input", scheduleSave);
 
-// Keyboard shortcut: Ctrl+N / Cmd+N → new note
+// Keyboard shortcut: Ctrl+N / Cmd+N → new note; Ctrl+E / Cmd+E → expand/collapse
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "n") {
     e.preventDefault();
     createNote();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+    e.preventDefault();
+    toggleExpand();
   }
 });
 
@@ -562,6 +572,21 @@ btnDismissErr.addEventListener("click", hideError);
 btnDismissQuota.addEventListener("click", () => { quotaBanner.hidden = true; });
 
 btnUndoDelete.addEventListener("click", undoDelete);
+
+async function toggleExpand() {
+  const isExpanded = document.documentElement.classList.toggle("expanded");
+  btnExpandToggle.textContent = isExpanded ? "\u229F" : "\u229E"; // ⊟ collapse / ⊞ expand
+  btnExpandToggle.title = isExpanded ? "Collapse popup (Ctrl+E)" : "Expand popup (Ctrl+E)";
+  try {
+    const settings = await loadSettings();
+    await saveSettings(Object.assign({}, settings, { expanded: isExpanded }));
+  } catch (err) {
+    showError("Could not save expand state: " + err.message);
+  }
+}
+
+btnExpandToggle.addEventListener("click", toggleExpand);
+
 btnThemeToggle.addEventListener("click", async () => {
   const next = effectiveTheme() === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = next;

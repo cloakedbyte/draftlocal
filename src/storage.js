@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS = {
   theme:        "auto",
   sortOrder:    "newest",
   sidebarWidth: 140,
+  expanded:     false,
 };
 
 /**
