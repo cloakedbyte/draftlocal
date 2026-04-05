@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Offline Notes",
-  "version": "1.0.0",
-  "description": "A simple offline-only note-taking extension. No sync, no accounts, no network.",
+  "name": "DraftLocal",
+  "version": "0.0.1",
+  "description": "DraftLocal — a minimal offline-only note-taking extension. No sync, no accounts, no network requests.",
   "permissions": ["storage"],
   "action": {
     "default_popup": "src/popup.html",
