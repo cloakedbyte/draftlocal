@@ -15,7 +15,7 @@
 ## Usage
 
 | Action | How |
-|---|---|
+| --- | --- |
 | New note | Click **+** in the sidebar or press `Ctrl+N` |
 | Edit note | Click a note in the list, type in the editor |
 | Delete note | Click **🗑 Delete** in the toolbar, confirm prompt |
